@@ -48,20 +48,24 @@ class CNN(object):
             # 75 x 75 x 2
             images = tf.reshape(self.x, [-1, 75, 75, 2])
 
+            feature_layer = conv_layer(images, shape=[3, 3, 2, 64])
+
             # 75 x 75 x 32
-            conv1 = conv_layer(images, shape=[5, 5, 2, 32])
+            conv1 = conv_layer(feature_layer, shape=[5, 5, 64, 64])
+            conv2 = conv_layer(feature_layer, shape=[5, 5, 64, 64])
 
             # 37 x 37 x 32
-            conv1_pool = max_pool_2x2(conv1)
-
-            # 37 x 37 x 64
-            conv2 = conv_layer(conv1_pool, shape=[5, 5, 32, 64])
-
-            # 19 x 19 x 64
             conv2_pool = max_pool_2x2(conv2)
 
+            # 37 x 37 x 64
+            conv3 = conv_layer(conv2_pool, shape=[5, 5, 64, 64])
+            conv4 = conv_layer(conv3, shape=[5, 5, 64, 64])
+
+            # 19 x 19 x 64
+            conv4_pool = max_pool_2x2(conv4)
+
             # full layer 20736
-            conv3_flat = tf.reshape(conv2_pool, [-1, 19*19*64])
+            conv3_flat = tf.reshape(conv4_pool, [-1, 19*19*64])
 
             # dropout 20736
             conv3_drop = tf.nn.dropout(conv3_flat, keep_prob = keep_prob)
