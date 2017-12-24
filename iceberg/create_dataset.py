@@ -29,6 +29,7 @@ def create(filename, data, start, end):
         inc_angle = data[i]["inc_angle"]
         if inc_angle == "na":
             inc_angle = 0.0
+            label = 1
 
         x = x.astype(np.float32)
 

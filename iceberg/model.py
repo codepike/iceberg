@@ -7,10 +7,11 @@ class CNN(object):
         is_training: is training
         keep_prob: keep probability
     """
-    def __init__(self,  reader, mode, keep_prob=0.5):
+    def __init__(self,  reader, mode, keep_prob=0.5, learning_rate=0.001):
         self.reader = reader
         self.keep_prob = keep_prob
         self.graph = tf.Graph()
+        self.learning_rate = learning_rate
         with self.graph.as_default():
             self.x, self.labels = self.reader.read()
             if mode == "train":
@@ -24,7 +25,7 @@ class CNN(object):
         self.build_architecture(keep_prob=self.keep_prob)
         self.calc_loss()
         self.global_step = tf.Variable(0, name='global_step', trainable=False)
-        self.optimizer = tf.train.AdamOptimizer()
+        self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
         self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
 
         self._summary()
