@@ -27,6 +27,8 @@ class CNN(object):
         self.optimizer = tf.train.AdamOptimizer()
         self.train_op = self.optimizer.minimize(self.loss, global_step=self.global_step)
 
+        self._summary()
+
     def build_evalulate_graph(self):
         self.build_architecture(keep_prob=self.keep_prob)
         self.calc_accuracy()
@@ -77,6 +79,11 @@ class CNN(object):
     def calc_loss(self):
         loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
         self.loss = tf.reduce_mean(loss)
+
+    def _summary(self):
+        train_summary = []
+        train_summary.append(tf.summary.scalar('train/loss', self.loss))
+        self.train_summary = tf.summary.merge(train_summary)
 
 
 # util functions here
