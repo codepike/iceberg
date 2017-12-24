@@ -21,7 +21,7 @@ config = flags.FLAGS
 def main(_):
     if config.mode == 'train':
         reader = TFReader(config.data_path, config.epoch, config.batch_size, [75*75*2], [1])
-        cnn_model = CNN(reader, config.mode, keep_prob=0.5)
+        cnn_model = CNN(reader, config.mode, keep_prob=0.5, learning_rate=config.learning_rate)
         train(cnn_model, config)
     elif config.mode == 'evaluate':
         reader = TFReader(config.data_path, config.epoch, config.batch_size, [75 * 75 * 2], [1])
