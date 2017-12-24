@@ -4,12 +4,12 @@ import json
 
 
 def train(model, config):
-    supervisor = tf.train.Supervisor(graph=model.graph, logdir=config.logdir, save_model_secs=60)
+    supervisor = tf.train.Supervisor(graph=model.graph, logdir=config.logdir, save_model_secs=60, global_step=model.global_step)
 
     with supervisor.managed_session() as sess:
         while not supervisor.should_stop():
-            sess.run(model.train_op)
-
+            _, summary_str, step = sess.run([model.train_op, model.train_summary, model.global_step])
+            supervisor.summary_writer.add_summary(summary_str, step)
 
 def evaluate(model, config):
     supervisor = tf.train.Supervisor(graph=model.graph, logdir=config.logdir, save_model_secs=0)
