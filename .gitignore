@@ -2,3 +2,7 @@
 *.json
 *.tfrecord
 *logdir/*
+.DS_Store
+.idea/*
+iceberg/__pycache__/*
+*logdir*/*
