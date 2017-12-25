@@ -35,7 +35,6 @@ def predict(model, config):
             x = np.array([band_1, band_2])
             x = x.reshape((-1, 11250))
             probability = sess.run([model.softmax], feed_dict={model.x: x})
-            print "{},{}".format(id, probability[0][0][0])
             result.write("{},{}\n".format(id, probability[0][0][0]))
 
     result.close()

@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from model import CNN
+from model import CNN, Resnet
 from reader import TFReader, DefaultReader
 from task import train, evaluate, predict
 
@@ -21,16 +21,17 @@ config = flags.FLAGS
 def main(_):
     if config.mode == 'train':
         reader = TFReader(config.data_path, config.epoch, config.batch_size, [75*75*2], [1])
-        cnn_model = CNN(reader, config.mode, keep_prob=0.5, learning_rate=config.learning_rate)
-        train(cnn_model, config)
+        # cnn_model = CNN(reader, config.mode, keep_prob=0.5, learning_rate=config.learning_rate)
+        resnet = Resnet(reader, config.mode, keep_prob=0.5, learning_rate=config.learning_rate)
+        train(resnet, config)
     elif config.mode == 'evaluate':
         reader = TFReader(config.data_path, config.epoch, config.batch_size, [75 * 75 * 2], [1])
-        cnn_model = CNN(reader, config.mode, keep_prob=1.0)
-        evaluate(cnn_model, config)
+        resnet = Resnet(reader, config.mode, keep_prob=1.0)
+        evaluate(resnet, config)
     elif config.mode == 'predict':
         reader = DefaultReader(None)
-        cnn_model = CNN(reader, config.mode, keep_prob=1.0)
-        predict(cnn_model, config)
+        resnet = Resnet(reader, config.mode, keep_prob=1.0)
+        predict(resnet, config)
 
 
 if __name__ == '__main__':
