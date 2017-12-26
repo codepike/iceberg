@@ -16,37 +16,33 @@ def softmax_layer(inpt, shape):
     return fc_h
 
 
-def conv_layer_res(inpt, filter_shape, stride):
+def conv_layer_res(inpt, filter_shape, stride, is_training):
     out_channels = filter_shape[3]
 
     filter_ = weight_variable(filter_shape)
+
     conv = tf.nn.conv2d(inpt, filter=filter_, strides=[1, stride, stride, 1], padding="SAME")
-    mean, var = tf.nn.moments(conv, axes=[0, 1, 2])
-    beta = tf.Variable(tf.zeros([out_channels]), name="beta")
-    gamma = weight_variable([out_channels], name="gamma")
 
-    batch_norm = tf.nn.batch_norm_with_global_normalization(
-        conv, mean, var, beta, gamma, 0.001,
-        scale_after_normalization=True)
-
+    batch_norm = tf.contrib.layers.batch_norm(conv, center=True, scale=True, is_training=is_training)
+    # batch_norm = tf.contrib.layers.batch_norm(conv)
     out = tf.nn.relu(batch_norm)
 
     return out
 
 
-def residual_block(inpt, output_depth, down_sample, projection=False):
+def residual_block(inpt, output_depth, down_sample, projection=False, is_training=False):
     input_depth = inpt.get_shape().as_list()[3]
     if down_sample:
         filter_ = [1, 2, 2, 1]
         inpt = tf.nn.max_pool(inpt, ksize=filter_, strides=filter_, padding='SAME')
 
-    conv1 = conv_layer_res(inpt, [3, 3, input_depth, output_depth], 1)
-    conv2 = conv_layer_res(conv1, [3, 3, output_depth, output_depth], 1)
+    conv1 = conv_layer_res(inpt, [3, 3, input_depth, output_depth], 1, is_training)
+    conv2 = conv_layer_res(conv1, [3, 3, output_depth, output_depth], 1, is_training)
 
     if input_depth != output_depth:
         if projection:
             # Option B: Projection shortcut
-            input_layer = conv_layer(inpt, [1, 1, input_depth, output_depth], 2)
+            input_layer = conv_layer_res(inpt, [1, 1, input_depth, output_depth], 2, is_training)
         else:
             # Option A: Zero-padding
             input_layer = tf.pad(inpt, [[0, 0], [0, 0], [0, 0], [0, output_depth - input_depth]])

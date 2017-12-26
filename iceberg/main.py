@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from model import CNN, Resnet
 from reader import TFReader, DefaultReader
-from task import train, evaluate, predict
+from task import train, evaluate, predict, batch_predict
 
 flags = tf.app.flags
 
@@ -32,6 +32,10 @@ def main(_):
         reader = DefaultReader(None)
         resnet = Resnet(reader, config.mode, keep_prob=1.0)
         predict(resnet, config)
+    elif config.mode == 'batch_predict':
+        reader = TFReader(config.data_path, 1, config.batch_size, [75 * 75 * 2], [1], shuffle=False)
+        resnet = Resnet(reader, config.mode, keep_prob=1.0)
+        batch_predict(resnet, config)
 
 
 if __name__ == '__main__':

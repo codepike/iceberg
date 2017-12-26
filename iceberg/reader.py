@@ -54,7 +54,8 @@ class TFReader:
             x_batch, label_batch = tf.train.batch(
                 [x, label],
                 batch_size=self.batch_size,
-                capacity=capacity)
+                capacity=capacity,
+                allow_smaller_final_batch=True)
 
         return x_batch, label_batch
 
