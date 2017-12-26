@@ -8,3 +8,4 @@ iceberg/__pycache__/*
 *logdir*/*
 data/*
 test.py
+.ipynb*
