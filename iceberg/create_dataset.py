@@ -12,50 +12,90 @@ flags.DEFINE_float("end", 100.0, "The end percentage of data to be used")
 
 config = flags.FLAGS
 
+SAME = 0
+ROTATE = 1
+FLIP = 2
+
+
+def augment(tensor, action=SAME):
+    if action == ROTATE:
+        print("tensor.shape", tensor.shape)
+        return tf.contrib.keras.preprocessing.image.random_rotation(
+                tensor, 30, row_axis=0, col_axis=1, channel_axis=2)
+    else:
+        return tensor
+
+
+def read_data(data, start, end, action):
+    if start >= end:
+        print("skipped, [{} - {}]".format(start, end))
+        return []
+    else:
+        print("created, [{} - {}]".format(start, end))
+        processed = []
+        for i in range(start, end):
+            label = data[i].get("is_iceberg", 0)   # 0 is ship and 1 is iceberg
+            inc_angle = data[i]["inc_angle"]
+            if inc_angle == "na":
+                inc_angle = 0.0
+                label = 1
+
+            band_1 = data[i]["band_1"]
+            band_2 = data[i]["band_2"]
+
+            band_1 = np.array(band_1)
+            band_2 = np.array(band_2)
+
+            band_1 = band_1.reshape((75,75))
+            band_2 = band_2.reshape((75,75))
+
+            x = np.dstack((band_1, band_2))
+            # x = np.array([band_1, band_2])
+            # x = x.reshape((2, 75, 75))
+            # x = np.tran
+            x = augment(x, action)
+            x = x.astype(np.float32)
+
+            example = tf.train.Example(
+                features=tf.train.Features(
+                    feature={
+                        'x': tf.train.Feature(bytes_list = tf.train.BytesList(value=[x.tostring()])),
+                        'label': tf.train.Feature(int64_list = tf.train.Int64List(value=[label])),
+                        'inc_angle': tf.train.Feature(float_list=tf.train.FloatList(value=[inc_angle])),
+                    },
+                )
+            )
+
+            processed.append(example)
+
+        return processed
+
 
 def create(filename, data, start, end):
-    if start >= end:
-        print("skipped {}, [{} - {}]".format(filename, start, end))
-    else:
-        print("created {}, [{} - {}]".format(filename, start, end))
-
     writer = tf.python_io.TFRecordWriter(filename)
 
-    for i in range(start, end):
-        label = data[i].get("is_iceberg", 0)   # 0 is ship and 1 is iceberg
-        band_1 = data[i]["band_1"]
-        band_2 = data[i]["band_2"]
-        x = np.array([band_1, band_2])
-        inc_angle = data[i]["inc_angle"]
-        if inc_angle == "na":
-            inc_angle = 0.0
-            label = 1
-
-        x = x.astype(np.float32)
-
-        example = tf.train.Example(
-            features=tf.train.Features(
-                feature={
-                    'x': tf.train.Feature(bytes_list = tf.train.BytesList(value=[x.tostring()])),
-                    'label': tf.train.Feature(int64_list = tf.train.Int64List(value=[label])),
-                    'inc_angle': tf.train.Feature(float_list=tf.train.FloatList(value=[inc_angle])),
-                },
-            )
-        )
-
+    examples = read_data(data, start, end, SAME)
+    print(len(examples))
+    for example in examples:
         writer.write(example.SerializeToString())
+
+    # for _ in range(10):
+    #     examples = read_data(data, start, end, ROTATE)
+    #     for example in examples:
+    #         writer.write(example.SerializeToString())
 
     writer.close()
 
 
 def main(_):
-    rawdata = open(config.data_path).read()
-    data = json.loads(rawdata)
+    raw_data = open(config.data_path).read()
+    data = json.loads(raw_data)
 
     n = len(data)
     start = int(config.start * n / 100.0)
     end = int(config.end * n / 100.0)
     create(config.output, data, start, end)
+
 
 if __name__ == '__main__':
     tf.app.run()

@@ -20,7 +20,7 @@ class Model(object):
                 self.build_train_graph()
             elif mode == "evaluate":
                 self.build_evalulate_graph()
-            elif mode == "predict":
+            elif mode == "predict" or mode == "batch_predict":
                 self.build_predict_graph()
 
     def build_train_graph(self):
@@ -81,7 +81,8 @@ class Model(object):
         #     self.predict = tf.argmax(self.logits, 1)
 
     def calc_loss(self):
-        loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
+        # loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
+        loss = tf.losses.log_loss(self.labels, self.softmax)
         self.loss = tf.reduce_mean(loss)
 
     def _summary(self):
@@ -223,6 +224,6 @@ class Resnet(Model):
             # 75 x 75 x 2
             images = tf.reshape(self.x, [-1, 75, 75, 2])
 
-            self.logits = resnet(images, 140)
+            self.logits = resnet(images, 32)
             self.softmax = tf.nn.softmax(self.logits)
             self.predict = tf.argmax(self.logits, 1)
