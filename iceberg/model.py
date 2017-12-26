@@ -14,6 +14,8 @@ class Model(object):
         self.keep_prob = keep_prob
         self.graph = tf.Graph()
         self.learning_rate = learning_rate
+        self.mode = mode
+        self.is_training = mode == 'train'
         with self.graph.as_default():
             self.x, self.labels = self.reader.read()
             if mode == "train":
@@ -163,7 +165,7 @@ class CNN(Model):
             self.predict = tf.argmax(self.logits, 1)
 
 
-def resnet(inpt, n):
+def resnet(inpt, n, is_training=False):
     if n < 20 or (n - 20) % 12 != 0:
         print("ResNet depth invalid.")
         return
@@ -172,23 +174,25 @@ def resnet(inpt, n):
     layers = []
 
     with tf.variable_scope('conv1'):
-        conv1 = conv_layer_res(inpt, [3, 3, 2, 16], 1)
+        conv1 = conv_layer_res(inpt, [3, 3, 2, 16], 1, is_training)
         layers.append(conv1)
+        print("conv1 shape: {}".format(conv1.shape))
 
     for i in range(num_conv):
         with tf.variable_scope('conv2_%d' % (i + 1)):
-            conv2_x = residual_block(layers[-1], 16, False)
-            conv2 = residual_block(conv2_x, 16, False)
+            conv2_x = residual_block(layers[-1], 16, False, is_training=is_training)
+            conv2 = residual_block(conv2_x, 16, False, is_training=is_training)
             layers.append(conv2_x)
             layers.append(conv2)
+            print("conv2 shape: {}".format(conv2.shape))
 
         assert conv2.get_shape().as_list()[1:] == [75, 75, 16]
 
     for i in range(num_conv):
         down_sample = True if i == 0 else False
         with tf.variable_scope('conv3_%d' % (i + 1)):
-            conv3_x = residual_block(layers[-1], 32, down_sample)
-            conv3 = residual_block(conv3_x, 32, False)
+            conv3_x = residual_block(layers[-1], 32, down_sample, is_training=is_training)
+            conv3 = residual_block(conv3_x, 32, False, is_training=is_training)
             layers.append(conv3_x)
             layers.append(conv3)
 
@@ -197,8 +201,8 @@ def resnet(inpt, n):
     for i in range(num_conv):
         down_sample = True if i == 0 else False
         with tf.variable_scope('conv4_%d' % (i + 1)):
-            conv4_x = residual_block(layers[-1], 64, down_sample)
-            conv4 = residual_block(conv4_x, 64, False)
+            conv4_x = residual_block(layers[-1], 64, down_sample, is_training=is_training)
+            conv4 = residual_block(conv4_x, 64, False, is_training=is_training)
             layers.append(conv4_x)
             layers.append(conv4)
 
@@ -224,6 +228,6 @@ class Resnet(Model):
             # 75 x 75 x 2
             images = tf.reshape(self.x, [-1, 75, 75, 2])
 
-            self.logits = resnet(images, 32)
+            self.logits = resnet(images, 32, self.is_training)
             self.softmax = tf.nn.softmax(self.logits)
             self.predict = tf.argmax(self.logits, 1)
