@@ -132,16 +132,16 @@ class CNN(Model):
 
     def build_architecture(self, keep_prob=0.5):
         with tf.variable_scope('Conv_layer'):
-            # 75 x 75 x 2
-            images = tf.reshape(self.x, [-1, 75, 75, 2])
+            # 75 x 75 x 3
+            images = tf.reshape(self.x, [-1, 75, 75, 3])
 
-            # 75 x 75 x 32
-            conv1 = conv_layer(images, shape=[5, 5, 2, 32])
+            layers = []
 
-            # 37 x 37 x 32
-            conv1_pool = max_pool_2x2(conv1)
+            # 75 x 75 x 64
+            layers.append(conv_layer(images, shape=[3, 3, 3, 64]))
+            layers.append(max_pool_2x2(layers[-1]))
 
-            # 37 x 37 x 64
+            layers.append()
             conv2 = conv_layer(conv1_pool, shape=[5, 5, 32, 64])
 
             # 19 x 19 x 64
@@ -174,9 +174,8 @@ def resnet(inpt, n, is_training=False):
     layers = []
 
     with tf.variable_scope('conv1'):
-        conv1 = conv_layer_res(inpt, [3, 3, 2, 16], 1, is_training)
+        conv1 = conv_layer_res(inpt, [3, 3, 3, 16], 1, is_training)
         layers.append(conv1)
-        print("conv1 shape: {}".format(conv1.shape))
 
     for i in range(num_conv):
         with tf.variable_scope('conv2_%d' % (i + 1)):
@@ -226,7 +225,8 @@ class Resnet(Model):
     def build_architecture(self, keep_prob=0.5):
         with tf.variable_scope('Conv_layer'):
             # 75 x 75 x 2
-            images = tf.reshape(self.x, [-1, 75, 75, 2])
+            print(self.x.shape)
+            images = tf.reshape(self.x, [-1, 75, 75, 3])
 
             self.logits = resnet(images, 32, self.is_training)
             self.softmax = tf.nn.softmax(self.logits)
