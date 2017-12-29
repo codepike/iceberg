@@ -21,7 +21,7 @@ FLIP_UP_DOWN = 3
 def augment(tensor, action=SAME):
     if action == ROTATE:
         return tf.contrib.keras.preprocessing.image.random_rotation(
-                tensor, 30, row_axis=0, col_axis=1, channel_axis=2)
+                tensor, 20, row_axis=0, col_axis=1, channel_axis=2)
     elif action == FLIP_LEFT_RIGHT:
         return np.flip(tensor, 0)
     elif action == FLIP_UP_DOWN:
@@ -41,16 +41,15 @@ def read_data(data, start, end, action):
             label = data[i].get("is_iceberg", 0)   # 0 is ship and 1 is iceberg
             inc_angle = data[i]["inc_angle"] if data[i]["inc_angle"] != "na" else 0.0
 
-            band_1 = np.array(data[i]["band_1"]).reshape((75,75))
-            band_2 = np.array(data[i]["band_2"]).reshape((75,75))
-            band_3 = band_1+band_2  # composite
+            band_1 = 0-np.array(data[i]["band_1"]).reshape((75,75))
+            band_2 = 0-np.array(data[i]["band_2"]).reshape((75,75))
 
             band_1 = (band_1 - band_1.mean()) / (band_1.max() - band_1.min())
             band_2 = (band_2 - band_2.mean()) / (band_2.max() - band_2.min())
-            band_3 = (band_3 - band_3.mean()) / (band_3.max() - band_3.min())
 
-            x = np.dstack((band_1, band_2, band_3))    # shape(75,75,3)
-            x = augment(x, action).astype(np.float32)
+            x = np.dstack((band_1, band_2))
+            x = augment(x, action)
+            x = x.astype(np.float32)
 
             example = tf.train.Example(
                 features=tf.train.Features(
@@ -75,7 +74,8 @@ def create(filename, data, start, end, augment_data=False):
     for example in examples:
         writer.write(example.SerializeToString())
 
-    augment_actions = [FLIP_UP_DOWN, FLIP_LEFT_RIGHT]
+    augment_actions = [FLIP_UP_DOWN, FLIP_LEFT_RIGHT] + [ROTATE]*5
+    augment_actions = []
     for aug in augment_actions:
         examples = read_data(data, start, end, aug)
         for example in examples:
