@@ -2,9 +2,23 @@ import tensorflow as tf
 import numpy as np
 import json
 
+def train_keras(model, config):
+    supervisor = tf.train.Supervisor(graph=model.graph,
+                                     logdir=config.logdir,
+                                     save_model_secs=60,
+                                     global_step=model.global_step)
+
+    with supervisor.managed_session() as sess:
+        while not supervisor.should_stop():
+            _, summary_str, step = sess.run([model.train_op, model.train_summary, model.global_step])
+            supervisor.summary_writer.add_summary(summary_str, step)
+
 
 def train(model, config):
-    supervisor = tf.train.Supervisor(graph=model.graph, logdir=config.logdir, save_model_secs=60, global_step=model.global_step)
+    supervisor = tf.train.Supervisor(graph=model.graph,
+                                     logdir=config.logdir,
+                                     save_model_secs=60,
+                                     global_step=model.global_step)
 
     with supervisor.managed_session() as sess:
         while not supervisor.should_stop():
@@ -31,20 +45,18 @@ def predict(model, config):
     with supervisor.managed_session() as sess:
         for item in data:
             id = item['id']
-            band_1 = item["band_1"]
-            band_2 = item["band_2"]
+            band_1 = 0 - np.array(item["band_1"]).reshape((75,75))
+            band_2 = 0 - np.array(item["band_2"]).reshape((75,75))
+            # band_3 = band_1+band_2
 
-            band_1 = np.array(band_1)
-            band_2 = np.array(band_2)
+            band_1 = (band_1 - band_1.mean()) / (band_1.max() - band_1.min())
+            band_2 = (band_2 - band_2.mean()) / (band_2.max() - band_2.min())
+            # band_3 = (band_3 - band_3.mean()) / (band_3.max() - band_3.min())
 
-            band_1 = band_1.reshape((75,75))
-            band_2 = band_2.reshape((75,75))
-
-            x = np.dstack((band_1, band_2))
-            x = x.reshape((-1, 11250))
-            x = x.astype(np.float32)
+            x = np.dstack((band_1, band_2)).astype(np.float32)
 
             probability = sess.run([model.softmax], feed_dict={model.x: x})
+            print("{},{}\n".format(id, probability[0][0][0]))
             result.write("{},{}\n".format(id, probability[0][0][0]))
 
     result.close()

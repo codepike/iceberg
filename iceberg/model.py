@@ -1,5 +1,13 @@
 import tensorflow as tf
 from resnet import softmax_layer, conv_layer_res, residual_block
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten, Activation
+from keras.layers import Conv2D, MaxPooling2D, Input, InputLayer
+from keras import backend as K
+
+from keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
+from keras.layers.normalization import BatchNormalization
+from keras.optimizers import Adam
 
 
 class Model(object):
@@ -49,38 +57,6 @@ class Model(object):
 
     def build_architecture(self, keep_prob=0.5):
         pass
-        # with tf.variable_scope('Conv_layer'):
-        #     # 75 x 75 x 2
-        #     images = tf.reshape(self.x, [-1, 75, 75, 2])
-        #
-        #     # 75 x 75 x 32
-        #     conv1 = conv_layer(images, shape=[5, 5, 2, 32])
-        #
-        #     # 37 x 37 x 32
-        #     conv1_pool = max_pool_2x2(conv1)
-        #
-        #     # 37 x 37 x 64
-        #     conv2 = conv_layer(conv1_pool, shape=[5, 5, 32, 64])
-        #
-        #     # 19 x 19 x 64
-        #     conv2_pool = max_pool_2x2(conv2)
-        #
-        #     # full layer 20736
-        #     conv3_flat = tf.reshape(conv2_pool, [-1, 19*19*64])
-        #
-        #     # dropout 20736
-        #     conv3_drop = tf.nn.dropout(conv3_flat, keep_prob = keep_prob)
-        #
-        #     # 1024
-        #     full1 = tf.nn.relu(full_layer(conv3_drop, 1024))
-        #
-        #     # dropout 1024
-        #     full1_drop = tf.nn.dropout(full1, keep_prob=keep_prob)
-        #
-        #     # 2
-        #     self.logits = full_layer(full1_drop, 2)
-        #     self.softmax = tf.nn.softmax(self.logits)
-        #     self.predict = tf.argmax(self.logits, 1)
 
     def calc_loss(self):
         # loss = tf.nn.softmax_cross_entropy_with_logits(logits=self.logits, labels=self.labels)
@@ -133,34 +109,55 @@ class CNN(Model):
     def build_architecture(self, keep_prob=0.5):
         with tf.variable_scope('Conv_layer'):
             # 75 x 75 x 2
-            images = tf.reshape(self.x, [-1, 75, 75, 2])
+            self.images = tf.reshape(self.x, [-1, 75, 75, 2])
 
-            # 75 x 75 x 32
-            conv1 = conv_layer(images, shape=[5, 5, 2, 32])
+            K.set_learning_phase(1)
+            model = Sequential()
 
-            # 37 x 37 x 32
-            conv1_pool = max_pool_2x2(conv1)
+            model.add(InputLayer(input_tensor=self.images))
 
-            # 37 x 37 x 64
-            conv2 = conv_layer(conv1_pool, shape=[5, 5, 32, 64])
+            # CNN 1
+            model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(75, 75, 2)))
+            model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
+            model.add(Dropout(0.2))
 
-            # 19 x 19 x 64
-            conv2_pool = max_pool_2x2(conv2)
+            # CNN 2
+            model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
+            model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+            model.add(Dropout(0.2))
 
-            # full layer 20736
-            conv3_flat = tf.reshape(conv2_pool, [-1, 19 * 19 * 64])
+            # CNN 3
+            model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
+            model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+            model.add(Dropout(0.3))
 
-            # dropout 20736
-            conv3_drop = tf.nn.dropout(conv3_flat, keep_prob=keep_prob)
+            # CNN 4
+            model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
+            model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
+            model.add(Dropout(0.3))
 
-            # 1024
-            full1 = tf.nn.relu(full_layer(conv3_drop, 1024))
+            # You must flatten the data for the dense layers
+            model.add(Flatten())
 
-            # dropout 1024
-            full1_drop = tf.nn.dropout(full1, keep_prob=keep_prob)
+            # Dense 1
+            model.add(Dense(512, activation='relu'))
+            model.add(Dropout(0.2))
 
-            # 2
-            self.logits = full_layer(full1_drop, 2)
+            # Dense 2
+            model.add(Dense(256, activation='relu'))
+            model.add(Dropout(0.2))
+
+            # Output
+            model.add(Dense(2, activation="sigmoid"))
+
+            # optimizer = Adam(lr=0.001, decay=0.0)
+            # model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+
+            # model.summary()
+
+            self.model = model
+            self.output = model.output
+            self.logits = self.output
             self.softmax = tf.nn.softmax(self.logits)
             self.predict = tf.argmax(self.logits, 1)
 
@@ -174,9 +171,8 @@ def resnet(inpt, n, is_training=False):
     layers = []
 
     with tf.variable_scope('conv1'):
-        conv1 = conv_layer_res(inpt, [3, 3, 2, 16], 1, is_training)
+        conv1 = conv_layer_res(inpt, [3, 3, 3, 16], 1, is_training)
         layers.append(conv1)
-        print("conv1 shape: {}".format(conv1.shape))
 
     for i in range(num_conv):
         with tf.variable_scope('conv2_%d' % (i + 1)):
@@ -226,7 +222,8 @@ class Resnet(Model):
     def build_architecture(self, keep_prob=0.5):
         with tf.variable_scope('Conv_layer'):
             # 75 x 75 x 2
-            images = tf.reshape(self.x, [-1, 75, 75, 2])
+            print(self.x.shape)
+            images = tf.reshape(self.x, [-1, 75, 75, 3])
 
             self.logits = resnet(images, 32, self.is_training)
             self.softmax = tf.nn.softmax(self.logits)
