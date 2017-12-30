@@ -47,11 +47,11 @@ def predict(model, config):
             id = item['id']
             band_1 = 0 - np.array(item["band_1"]).reshape((75,75))
             band_2 = 0 - np.array(item["band_2"]).reshape((75,75))
-            # band_3 = band_1+band_2
+            band_3 = (band_1+band_2)/2.0
 
             band_1 = (band_1 - band_1.mean()) / (band_1.max() - band_1.min())
             band_2 = (band_2 - band_2.mean()) / (band_2.max() - band_2.min())
-            # band_3 = (band_3 - band_3.mean()) / (band_3.max() - band_3.min())
+            band_3 = (band_3 - band_3.mean()) / (band_3.max() - band_3.min())
 
             x = np.dstack((band_1, band_2)).astype(np.float32)
 

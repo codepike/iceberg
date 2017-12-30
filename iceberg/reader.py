@@ -69,6 +69,6 @@ class DefaultReader:
         self.x_shape = x_shape
 
     def read(self):
-        x_batch = tf.placeholder(tf.float32, shape=(None, 75*75*2))
+        x_batch = tf.placeholder(tf.float32, shape=(None, 75*75*3))
         label_batch = None
         return x_batch, label_batch

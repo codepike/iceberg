@@ -20,6 +20,7 @@ class Model(object):
     def __init__(self,  reader, mode, keep_prob=0.5, learning_rate=0.001):
         self.reader = reader
         self.keep_prob = keep_prob
+        self.drop_prob = 1.0 - keep_prob
         self.graph = tf.Graph()
         self.learning_rate = learning_rate
         self.mode = mode
@@ -109,7 +110,7 @@ class CNN(Model):
     def build_architecture(self, keep_prob=0.5):
         with tf.variable_scope('Conv_layer'):
             # 75 x 75 x 2
-            self.images = tf.reshape(self.x, [-1, 75, 75, 2])
+            self.images = tf.reshape(self.x, [-1, 75, 75, 3])
 
             K.set_learning_phase(1)
             model = Sequential()
@@ -117,35 +118,35 @@ class CNN(Model):
             model.add(InputLayer(input_tensor=self.images))
 
             # CNN 1
-            model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(75, 75, 2)))
+            model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(75, 75, 3)))
             model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
-            model.add(Dropout(0.2))
+            model.add(Dropout(self.drop_prob))
 
             # CNN 2
             model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
             model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-            model.add(Dropout(0.2))
+            model.add(Dropout(self.drop_prob))
 
             # CNN 3
             model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
             model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-            model.add(Dropout(0.3))
+            model.add(Dropout(self.drop_prob))
 
             # CNN 4
             model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
             model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-            model.add(Dropout(0.3))
+            model.add(Dropout(self.drop_prob))
 
             # You must flatten the data for the dense layers
             model.add(Flatten())
 
             # Dense 1
             model.add(Dense(512, activation='relu'))
-            model.add(Dropout(0.2))
+            model.add(Dropout(self.drop_prob))
 
             # Dense 2
             model.add(Dense(256, activation='relu'))
-            model.add(Dropout(0.2))
+            model.add(Dropout(self.drop_prob))
 
             # Output
             model.add(Dense(2, activation="sigmoid"))
