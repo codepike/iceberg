@@ -107,6 +107,7 @@ class CNN(Model):
         super(CNN, self).__init__(reader, mode, keep_prob, learning_rate)
 
     def build_architecture(self, keep_prob=0.5):
+        drop_prob = 1.0 - keep_prob
         with tf.variable_scope('Conv_layer'):
             # 75 x 75 x 2
             self.images = tf.reshape(self.x, [-1, 75, 75, 2])
@@ -119,36 +120,36 @@ class CNN(Model):
             # CNN 1
             model.add(Conv2D(64, kernel_size=(3, 3), activation='relu', input_shape=(75, 75, 2)))
             model.add(MaxPooling2D(pool_size=(3, 3), strides=(2, 2)))
-            model.add(Dropout(0.2))
+            model.add(Dropout(drop_prob))
 
             # CNN 2
             model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
             model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-            model.add(Dropout(0.2))
+            model.add(Dropout(drop_prob))
 
             # CNN 3
             model.add(Conv2D(128, kernel_size=(3, 3), activation='relu'))
             model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-            model.add(Dropout(0.3))
+            model.add(Dropout(drop_prob))
 
             # CNN 4
             model.add(Conv2D(64, kernel_size=(3, 3), activation='relu'))
             model.add(MaxPooling2D(pool_size=(2, 2), strides=(2, 2)))
-            model.add(Dropout(0.3))
+            model.add(Dropout(drop_prob))
 
             # You must flatten the data for the dense layers
             model.add(Flatten())
 
             # Dense 1
             model.add(Dense(512, activation='relu'))
-            model.add(Dropout(0.2))
+            model.add(Dropout(drop_prob))
 
             # Dense 2
             model.add(Dense(256, activation='relu'))
-            model.add(Dropout(0.2))
+            model.add(Dropout(drop_prob))
 
             # Output
-            model.add(Dense(2, activation="sigmoid"))
+            model.add(Dense(2))
 
             # optimizer = Adam(lr=0.001, decay=0.0)
             # model.compile(loss='binary_crossentropy', optimizer=optimizer, metrics=['accuracy'])

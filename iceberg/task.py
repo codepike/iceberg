@@ -47,11 +47,9 @@ def predict(model, config):
             id = item['id']
             band_1 = 0 - np.array(item["band_1"]).reshape((75,75))
             band_2 = 0 - np.array(item["band_2"]).reshape((75,75))
-            # band_3 = band_1+band_2
 
             band_1 = (band_1 - band_1.mean()) / (band_1.max() - band_1.min())
             band_2 = (band_2 - band_2.mean()) / (band_2.max() - band_2.min())
-            # band_3 = (band_3 - band_3.mean()) / (band_3.max() - band_3.min())
 
             x = np.dstack((band_1, band_2)).astype(np.float32)
 
@@ -65,9 +63,11 @@ def predict(model, config):
 def batch_predict(model, config):
     supervisor = tf.train.Supervisor(graph=model.graph, logdir=config.logdir, save_model_secs=0)
 
+    result = open(config.output, 'w')
     with supervisor.managed_session() as sess:
         while not supervisor.should_stop():
             predictions = sess.run(model.softmax)
             n = predictions.shape[0]
             for i in range(n):
                 print(predictions[i][1])
+                result.write(str(predictions[i][1]) + "\n")
