@@ -9,6 +9,9 @@ flags.DEFINE_string("data_path", "./data/train.json", "The path of input file")
 flags.DEFINE_string("output", "./data", "The directory of the output")
 flags.DEFINE_float("start", 0.0, "The start percentage of data to be used")
 flags.DEFINE_float("end", 100.0, "The end percentage of data to be used")
+flags.DEFINE_boolean("flip", False, "Augment data by flipping images vertically and horizontally")
+flags.DEFINE_integer("rotate", 0, "Augment data number of times by rotating images")
+flags.DEFINE_integer("flip_rotate", 0, "Augment data number of times by flipping and rotating images")
 
 config = flags.FLAGS
 
@@ -16,6 +19,7 @@ SAME = 0
 ROTATE = 1
 FLIP_LEFT_RIGHT = 2
 FLIP_UP_DOWN = 3
+FLIP_ROTATE = 4
 
 
 def augment(tensor, action=SAME):
@@ -26,6 +30,10 @@ def augment(tensor, action=SAME):
         return np.flip(tensor, 0)
     elif action == FLIP_UP_DOWN:
         return np.flip(tensor, 1)
+    elif action == FLIP_ROTATE:
+        flipped = np.flip(tensor, 0)
+        return tf.contrib.keras.preprocessing.image.random_rotation(
+            flipped, 30, row_axis=0, col_axis=1, channel_axis=2)
     else:
         return tensor
 
@@ -66,7 +74,7 @@ def read_data(data, start, end, action):
         return processed
 
 
-def create(filename, data, start, end, augment_data=False):
+def create(filename, data, start, end, augment_actions):
     writer = tf.python_io.TFRecordWriter(filename)
 
     examples = read_data(data, start, end, SAME)
@@ -74,8 +82,6 @@ def create(filename, data, start, end, augment_data=False):
     for example in examples:
         writer.write(example.SerializeToString())
 
-    augment_actions = [FLIP_UP_DOWN, FLIP_LEFT_RIGHT] + [ROTATE]*5
-    augment_actions = []
     for aug in augment_actions:
         examples = read_data(data, start, end, aug)
         for example in examples:
@@ -91,7 +97,19 @@ def main(_):
     n = len(data)
     start = int(config.start * n / 100.0)
     end = int(config.end * n / 100.0)
-    create(config.output, data, start, end)
+    actions = []
+
+    if config.flip:
+        actions += [FLIP_LEFT_RIGHT, FLIP_UP_DOWN]
+
+    if config.rotate > 0:
+        actions += [ROTATE] * config.rotate
+
+    if config.flip_rotate > 0:
+        actions += [FLIP_ROTATE] * config.flip_rotate
+
+    print(actions)
+    create(config.output, data, start, end, actions);
 
 
 if __name__ == '__main__':
